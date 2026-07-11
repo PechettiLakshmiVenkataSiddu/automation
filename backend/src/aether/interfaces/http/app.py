@@ -20,8 +20,10 @@ from aether.interfaces.http import (
     browser,
     chat,
     dashboard,
+    desktop,
     health,
     memory,
+    voice,
     workflows,
 )
 from aether.interfaces.http.errors import install_error_handlers
@@ -55,7 +57,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=list(application_settings.cors_origins),
         allow_credentials=True,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
     )
 
@@ -75,4 +77,6 @@ def create_app(
     app.include_router(automation.router)
     app.include_router(workflows.router)
     app.include_router(browser.router)
+    app.include_router(desktop.router)
+    app.include_router(voice.router)
     return app

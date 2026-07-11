@@ -4,7 +4,7 @@
 
 Workspace: `C:\Users\peche\OneDrive\Documents\automation`
 
-Completed phases: 0, 2, 3, 4, 5, 6, 7, 8, and 9. Phase 1 (Software Requirements Specification) is deferred. Start at Phase 10 and complete one phase at a time; stop for approval after each phase.
+Completed phases: 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, and 15. Phase 1 (Software Requirements Specification) is deferred. Phase 15 (Voice Assistant) is complete pending approval. Do not begin Phase 16 until approved.
 
 Do not discard or overwrite existing work. Inspect the existing architecture documents before changing code, preserve database migration order, and use additive forward-compatible migrations.
 

@@ -23,6 +23,12 @@ class ApplicationSettings(BaseSettings):
     )
     browser_artifact_root: Path = Field(default=Path(".artifacts"), alias="BROWSER_ARTIFACT_ROOT")
     browser_executor_secret: str = Field(min_length=32, alias="BROWSER_EXECUTOR_SECRET")
+    desktop_artifact_root: Path = Field(default=Path(".artifacts"), alias="DESKTOP_ARTIFACT_ROOT")
+    desktop_grant_secret: str = Field(min_length=32, alias="DESKTOP_GRANT_SECRET")
+    desktop_executor_secret: str = Field(min_length=32, alias="DESKTOP_EXECUTOR_SECRET")
+    voice_artifact_root: Path = Field(default=Path(".artifacts"), alias="VOICE_ARTIFACT_ROOT")
+    voice_grant_secret: str = Field(min_length=32, alias="VOICE_GRANT_SECRET")
+    voice_executor_secret: str = Field(min_length=32, alias="VOICE_EXECUTOR_SECRET")
 
     @field_validator("cors_origins", mode="before")
     @classmethod
