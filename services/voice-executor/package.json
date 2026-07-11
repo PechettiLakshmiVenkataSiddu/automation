@@ -1,0 +1,7 @@
+{
+  "name": "@aether/voice-executor",
+  "private": true,
+  "scripts": {
+    "start": "python src/voice_server.py"
+  }
+}

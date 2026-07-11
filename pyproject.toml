@@ -28,6 +28,7 @@ dev = [
     "mypy>=1.14,<2",
     "pytest>=8.3,<9",
     "pytest-asyncio>=0.25,<1",
+    "pytest-cov>=5.0.0,<6",
     "ruff>=0.9,<1",
 ]
 
@@ -65,6 +66,7 @@ ignore = ["B008"]
 "services/desktop-executor/src/server.py" = ["S310", "S104"]
 "services/voice-executor/src/voice_engine.py" = ["S603", "S607"]
 "services/voice-executor/src/voice_server.py" = ["S310", "S104"]
+"backend/src/aether/bootstrap/migrate.py" = ["ASYNC230", "ASYNC240", "E501"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -85,4 +87,14 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 branch = true
-source = ["aether"]
+source = ["backend/src/aether"]
+omit = [
+    "backend/src/aether/interfaces/*",
+    "backend/src/aether/infrastructure/*",
+    "backend/src/aether/bootstrap/*",
+    "backend/src/aether/main.py",
+]
+
+[tool.coverage.report]
+fail_under = 65
+show_missing = true

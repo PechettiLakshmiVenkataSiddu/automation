@@ -1,0 +1,150 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+from typing import Any
+from uuid import UUID, uuid4
+
+import pytest
+
+from aether.calendar.service import CalendarSyncService
+
+
+class FakeCalendarRepository:
+    def __init__(self) -> None:
+        self.connections: dict[UUID, dict[str, Any]] = {}
+        self.events: dict[str, dict[str, Any]] = {}
+        self.proposals: dict[UUID, dict[str, Any]] = {}
+
+    async def get_connection(self, org: UUID, user: UUID) -> dict[str, Any] | None:
+        return self.connections.get(user)
+
+    async def upsert_event(
+        self,
+        org: UUID,
+        user: UUID,
+        google_event_id: str,
+        summary: str,
+        description: str | None,
+        start_time: datetime,
+        end_time: datetime,
+        attendees: list[dict[str, Any]],
+        status: str,
+    ) -> UUID:
+        event_id = uuid4()
+        self.events[google_event_id] = {
+            "id": event_id,
+            "organization_id": org,
+            "user_id": user,
+            "google_event_id": google_event_id,
+            "summary": summary,
+            "description": description,
+            "start_time": start_time,
+            "end_time": end_time,
+            "attendees": attendees,
+            "status": status,
+        }
+        return event_id
+
+    async def get_events_in_range(
+        self, org: UUID, start_time: datetime, end_time: datetime
+    ) -> list[dict[str, Any]]:
+        return [
+            ev
+            for ev in self.events.values()
+            if ev["organization_id"] == org
+            and ev["status"] != "cancelled"
+            and (
+                (ev["start_time"] >= start_time and ev["start_time"] < end_time)
+                or (ev["end_time"] > start_time and ev["end_time"] <= end_time)
+                or (ev["start_time"] <= start_time and ev["end_time"] >= end_time)
+            )
+        ]
+
+    async def create_proposal(
+        self,
+        org: UUID,
+        user: UUID,
+        summary: str,
+        description: str | None,
+        start_time: datetime,
+        end_time: datetime,
+        attendees: list[dict[str, Any]],
+        conflict_detected: bool,
+    ) -> UUID:
+        proposal_id = uuid4()
+        self.proposals[proposal_id] = {
+            "id": proposal_id,
+            "organization_id": org,
+            "user_id": user,
+            "summary": summary,
+            "description": description,
+            "start_time": start_time,
+            "end_time": end_time,
+            "attendees": attendees,
+            "status": "pending",
+            "conflict_detected": conflict_detected,
+        }
+        return proposal_id
+
+    async def get_proposal(self, org: UUID, proposal_id: UUID) -> dict[str, Any] | None:
+        return self.proposals.get(proposal_id)
+
+    async def update_proposal_status(
+        self, org: UUID, proposal_id: UUID, status: str, reason: str | None = None
+    ) -> bool:
+        if proposal_id not in self.proposals:
+            return False
+        self.proposals[proposal_id]["status"] = status
+        return True
+
+
+@pytest.mark.asyncio
+async def test_propose_event_safe_direct_execution() -> None:
+    repo = FakeCalendarRepository()
+    service = CalendarSyncService(repo)  # type: ignore[arg-type]
+    org_id, user_id = uuid4(), uuid4()
+
+    repo.connections[user_id] = {
+        "permitted_calendars": ["*"],
+        "scopes": ["https://www.googleapis.com/auth/calendar"],
+    }
+
+    start = datetime.now(UTC)
+    end = start + timedelta(hours=1)
+
+    result = await service.propose_event(org_id, user_id, "Sync Demo", None, start, end, [])
+    assert result["type"] == "event"
+    assert result["status"] == "confirmed"
+    assert result["conflict_detected"] is False
+    assert len(repo.events) == 1
+
+
+@pytest.mark.asyncio
+async def test_propose_event_conflict_gating() -> None:
+    repo = FakeCalendarRepository()
+    service = CalendarSyncService(repo)  # type: ignore[arg-type]
+    org_id, user_id = uuid4(), uuid4()
+
+    repo.connections[user_id] = {
+        "permitted_calendars": ["*"],
+        "scopes": ["https://www.googleapis.com/auth/calendar"],
+    }
+
+    # Setup overlapping event in database cache
+    start = datetime.now(UTC)
+    end = start + timedelta(hours=1)
+    await repo.upsert_event(
+        org_id, user_id, "google-event-a", "Overlap", None, start, end, [], "confirmed"
+    )
+
+    # Propose conflicting time slot
+    result = await service.propose_event(org_id, user_id, "New Sync", None, start, end, [])
+    assert result["type"] == "proposal"
+    assert result["status"] == "pending"
+    assert result["conflict_detected"] is True
+
+    # Approve proposal manually
+    proposal_id = UUID(result["id"])
+    await service.approve_proposal(org_id, proposal_id, user_id, approved=True)
+    assert repo.proposals[proposal_id]["status"] == "approved"
+    assert len(repo.events) == 2

@@ -1,0 +1,7 @@
+{
+  "name": "@aether/desktop-executor",
+  "private": true,
+  "scripts": {
+    "start": "python src/server.py"
+  }
+}

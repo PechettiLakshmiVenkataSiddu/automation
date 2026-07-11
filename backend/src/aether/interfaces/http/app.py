@@ -15,14 +15,22 @@ from aether.auth.settings import AuthenticationSettings
 from aether.bootstrap.database import create_engine, create_session_factory
 from aether.bootstrap.settings import ApplicationSettings
 from aether.interfaces.http import (
+    admin,
+    agents,
+    analytics,
     auth,
     automation,
     browser,
+    calendar,
     chat,
+    chat_integration,
     dashboard,
     desktop,
+    developer,
+    email,
     health,
     memory,
+    notifications,
     voice,
     workflows,
 )
@@ -79,4 +87,12 @@ def create_app(
     app.include_router(browser.router)
     app.include_router(desktop.router)
     app.include_router(voice.router)
+    app.include_router(agents.router)
+    app.include_router(developer.router)
+    app.include_router(calendar.router)
+    app.include_router(email.router)
+    app.include_router(chat_integration.router)
+    app.include_router(notifications.router)
+    app.include_router(admin.router)
+    app.include_router(analytics.router)
     return app
