@@ -1,0 +1,37 @@
+# JavaScript / TypeScript
+node_modules/
+.next/
+dist/
+coverage/
+.turbo/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+build/
+*.egg-info/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Runtime data and local artifacts
+.data/
+artifacts/
+uploads/
+playwright-report/
+test-results/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

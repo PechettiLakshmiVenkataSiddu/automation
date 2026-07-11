@@ -1,0 +1,26 @@
+"""Persistence port for the memory domain."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Protocol
+from uuid import UUID
+
+from aether.memory.models import Memory, MemoryConsent
+
+
+class MemoryRepository(Protocol):
+    async def get_consent(self, organization_id: UUID, user_id: UUID) -> MemoryConsent | None: ...
+    async def set_consent(self, consent: MemoryConsent, changed_at: datetime) -> MemoryConsent: ...
+    async def create(self, memory: Memory) -> Memory: ...
+    async def get(self, organization_id: UUID, user_id: UUID, memory_id: UUID) -> Memory | None: ...
+    async def list_memories(
+        self, organization_id: UUID, user_id: UUID, query: str | None, limit: int
+    ) -> list[Memory]: ...
+    async def update(self, memory: Memory) -> Memory: ...
+    async def delete(
+        self, organization_id: UUID, user_id: UUID, memory_id: UUID, deleted_at: datetime
+    ) -> bool: ...
+    async def delete_all(
+        self, organization_id: UUID, user_id: UUID, deleted_at: datetime
+    ) -> int: ...
