@@ -37,6 +37,7 @@ class SqlAlchemyAuthenticationRepository:
             id=uuid4(), email=identity.email, display_name=identity.display_name, status="active"
         )
         self._session.add(user)
+        await self._session.flush()
         self._session.add(
             OAuthIdentityModel(
                 id=uuid4(),

@@ -56,6 +56,7 @@ class GoogleOAuthAdapter:
                 options={"require": ["sub", "email", "email_verified", "exp", "iat"]},
             )
         except jwt.PyJWTError as error:
+            print(f"DEBUG JWT ERROR: {type(error).__name__}: {error}")
             raise AuthenticationError("Google identity token is invalid") from error
         if nonce is not None and claims.get("nonce") != nonce:
             raise AuthenticationError("Google identity nonce is invalid")
