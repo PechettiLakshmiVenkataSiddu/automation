@@ -12,6 +12,7 @@ from aether.infrastructure.persistence.automation_repository import SqlAlchemyWo
 from aether.interfaces.http.dependencies import DatabaseSession
 from aether.interfaces.http.principal import Principal, get_principal
 
+from aether.automation.tools import TOOL_REGISTRY
 router = APIRouter(prefix="/v1/automation", tags=["automation"])
 
 
@@ -27,6 +28,10 @@ class ApprovalDecisionRequest(BaseModel):
     approved: bool
     reason: str | None = Field(default=None, max_length=2_000)
 
+class ToolInvokeRequest(BaseModel):
+    organization_id: UUID
+    tool_name: str = Field(min_length=1, max_length=128)
+    payload: dict[str, object] = Field(default_factory=dict)
 
 async def _membership(session: DatabaseSession, org: UUID, user: UUID, write: bool = False) -> str:
     row = (
@@ -166,3 +171,12 @@ async def decide_approval(
     if run_id is None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Approval is unavailable")
     return {"workflow_run_id": str(run_id), "decision": "approved" if body.approved else "rejected"}
+@router.post("/tools/invoke")
+async def invoke_tool(
+    body: ToolInvokeRequest, session: DatabaseSession, principal: Principal = Depends(get_principal)
+) -> dict[str, object]:
+    await _membership(session, body.organization_id, principal.user_id, write=True)
+    tool = TOOL_REGISTRY.get(body.tool_name)
+    if tool is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown tool")
+    return await tool.execute(body.payload)

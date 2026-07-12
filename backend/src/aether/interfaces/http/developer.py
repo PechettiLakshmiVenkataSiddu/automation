@@ -1,6 +1,8 @@
 """Authenticated routes for sandboxed shell execution and decision gates."""
 
 from __future__ import annotations
+
+import logging
 from typing import Any
 from uuid import UUID
 

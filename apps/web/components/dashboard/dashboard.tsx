@@ -2,7 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardSummary, getOrganizations, refreshAccessToken } from '@/lib/dashboard-api';
-
+function apiBaseUrl(): string {
+  const url = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!url) throw new Error('NEXT_PUBLIC_API_BASE_URL is not configured.');
+  return url.replace(/\/$/, '');
+}
 const labels: Record<string, string> = {
   queued: 'Queued',
   running: 'Running',
@@ -38,27 +42,28 @@ export function Dashboard() {
     if (!organizationId) return;
 
     try {
-      const response = await fetch('/v1/developer/commands', {
+      const response = await fetch(`${apiBaseUrl()}/v1/automation/tools/invoke`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${tokenQuery.data}`,
         },
+        credentials: 'include',
         body: JSON.stringify({
           organization_id: organizationId,
-          sandbox_id: "default-sandbox", // Ensure this matches your DB
-          command_line: "manual_trigger",
-          timeout_seconds: 30,
-          task_type: taskName, // This triggers the TOOL_REGISTRY in your backend[cite: 1]
-          input_payload: payload,
+          tool_name: taskName,
+          payload: payload,
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to trigger task');
-      alert(`Task ${taskName} queued successfully!`);
+      const result = await response.json();
+      if (!response.ok || result.status === 'error') {
+        throw new Error(result.message ?? result.detail ?? 'Failed to trigger task');
+      }
+      alert(result.message ?? `Task ${taskName} completed successfully!`);
     } catch (error) {
       console.error(error);
-      alert('Error triggering task.');
+      alert(error instanceof Error ? error.message : 'Error triggering task.');
     }
   };
 
@@ -83,13 +88,12 @@ export function Dashboard() {
       <p className="text-sm font-semibold tracking-[0.2em] text-[var(--accent)]">
         {organizations.data[0].name}
       </p>
-      
+
       {/* Tool Trigger Section */}
       <h1 className="mt-2 text-4xl font-semibold">Operations overview</h1>
       <section className="mt-6 flex gap-4">
         <button
-          onClick={() => triggerTool('local_file_backup', { path: 'C:\\test.txt' })}
-          className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-80"
+          onClick={() => triggerTool('local_file_backup', { path: 'C:\\Users\\peche\\test.txt' })} className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-80"
         >
           Run File Backup
         </button>
