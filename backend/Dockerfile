@@ -18,4 +18,4 @@ COPY database/schema/ /app/database/schema/
 RUN groupadd -r appgroup && useradd -r -g appgroup -u 1001 appuser && chown -R appuser:appgroup /app
 USER appuser
 EXPOSE 8000
-CMD ["uvicorn", "aether.interfaces.http.app:create_app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "aether.main:app", "--host", "0.0.0.0", "--port", "8000"]
