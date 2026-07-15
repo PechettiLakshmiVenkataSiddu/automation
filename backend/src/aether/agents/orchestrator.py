@@ -177,4 +177,57 @@ class AgentOrchestrator:
             await self._repository.update_step_status(org, step_id, "failed")
             await self._fail_run(org, run_id, f"Step {step['step_index']} failed: {str(error)}")
 
-    # ... keep decide_approval and _fail_run as they were ...
+    async def decide_approval(
+        self, org: UUID, run_id: UUID, approved: bool, reason: str | None = None
+    ) -> None:
+        """Resolve user approval decisions for execution gates."""
+        run = await self._repository.get_run(org, run_id)
+        if not run or run["status"] != "awaiting_approval":
+            raise ValueError("Run is not awaiting approval.")
+
+        steps = await self._repository.get_plan(org, run_id)
+        target_step = None
+        for step in steps:
+            if step["status"] == "pending":
+                target_step = step
+                break
+
+        if not target_step:
+            raise ValueError("No pending step found to approve.")
+
+        if approved:
+            await self._repository.add_audit_log(
+                org,
+                run_id,
+                target_step["id"],
+                "policy_check",
+                f"User approved execution of step {target_step['step_index']}.",
+                {"reason": reason},
+            )
+            # Remove approval block and run
+            await self._repository.update_step_status(org, target_step["id"], "pending")
+            await self._repository._session.execute(
+                text(
+                    "UPDATE agent_plans SET requires_approval = false "
+                    "WHERE id = :id AND organization_id = :org"
+                ),
+                {"id": target_step["id"], "org": org},
+            )
+            await self._repository.update_run_status(org, run_id, "running")
+            await self.execute_next_step(org, run_id)
+        else:
+            await self._repository.add_audit_log(
+                org,
+                run_id,
+                target_step["id"],
+                "policy_check",
+                f"User rejected execution of step {target_step['step_index']}. "
+                "Cancelling run.",
+                {"reason": reason},
+            )
+            await self._repository.update_step_status(org, target_step["id"], "rejected")
+            await self._repository.update_run_status(org, run_id, "cancelled")
+
+    async def _fail_run(self, org: UUID, run_id: UUID, reason: str) -> None:
+        await self._repository.update_run_status(org, run_id, "failed")
+        await self._repository.add_audit_log(org, run_id, None, "error", reason)

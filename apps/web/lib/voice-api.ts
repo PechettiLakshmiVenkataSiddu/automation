@@ -78,3 +78,12 @@ export function decideVoiceConfirmation(
     body: JSON.stringify({ organization_id, confirmed }),
   });
 }
+
+export function getVoiceSession(
+  token: string,
+  session_id: string,
+  organization_id: string,
+): Promise<{ id: string; status: string; retention_mode: string; transcript: string | null; expires_at: string }> {
+  return api(`/v1/voice/sessions/${session_id}?organization_id=${organization_id}`, token);
+}
+
